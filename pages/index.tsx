@@ -1,21 +1,53 @@
-import { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
+import { useInterval } from "../hooks";
+import Modal from "react-modal";
+import { useRouter } from "next/router";
 
 interface IPostForm {
   title: string;
   content: string;
-  media: { status: string; media: string };
+  media: { status: string; url: string };
 }
 
 const PostForm = () => {
+  const [countdown, setCountdown] = useState(30);
+  const [modalNode, setModalNode] = useState<React.ReactElement | null>(null);
+  Modal.setAppElement("#__next");
   const { handleSubmit, control, watch } = useForm<IPostForm>({
     defaultValues: {
       title: "",
       content: "",
     },
   });
-
   const contentChars = watch("content");
+  const media = watch("media");
+  const router = useRouter();
+
+  useInterval(
+    () => {
+      if (countdown === 0) {
+        setModalNode(
+          <div className="bg-white p-4 h-40 w-80 rounded-md shadow-md space-y-4 flex flex-col items-center justify-center">
+            <div>Time has ran out</div>
+            <button
+              className="flex items-center justify-center rounded-md font-medium shadow-sm focus:outline-none text-white bg-gray-800 hover:bg-black px-4 py-2 text-sm w-32"
+              onClick={() => router.reload()}
+            >
+              Try Again
+            </button>
+          </div>
+        );
+      } else {
+        setCountdown(countdown - 1);
+      }
+    },
+    media?.status !== "UPLOADING" ? 1000 : null
+  );
+
+  const addMoreTime = () => {
+    setCountdown(countdown + 30);
+  };
 
   const handleImageUpload = (
     event: React.ChangeEvent,
@@ -29,7 +61,7 @@ const PostForm = () => {
         if (ev.target?.result) {
           onChange({
             status: "UPLOADING",
-            media: ev.target.result as string,
+            url: ev.target.result as string,
           });
         }
       };
@@ -37,7 +69,30 @@ const PostForm = () => {
   };
 
   const onSubmit = (data: IPostForm) => {
-    alert(JSON.stringify(data));
+    setModalNode(
+      <div className="bg-white p-4 h-52 w-96 rounded-md shadow-md space-y-4 flex flex-col items-center justify-center">
+        <div>
+          <div className="flex space-x-2">
+            <div className="text-gray-500">Post Title:</div>
+            <div>{data.title}</div>
+          </div>
+          <div className="flex space-x-2">
+            <div className="text-gray-500">Post Content:</div>
+            <div className="w-56 truncate">{data.content}</div>
+          </div>
+          <div className="flex space-x-2">
+            <div className="text-gray-500">Image Url:</div>
+            <div className="w-64 truncate">{data.media?.url}</div>
+          </div>
+        </div>
+        <button
+          className="flex items-center justify-center rounded-md font-medium shadow-sm focus:outline-none text-white bg-gray-800 hover:bg-black px-4 py-2 text-sm w-32 mt-4"
+          onClick={() => router.reload()}
+        >
+          Reset
+        </button>
+      </div>
+    );
   };
 
   return (
@@ -46,6 +101,16 @@ const PostForm = () => {
         onSubmit={handleSubmit(onSubmit)}
         className="w-96 rounded-md bg-white shadow-md p-4"
       >
+        <div className="flex justify-between text-gray-500 items-center">
+          <span>Time Left: {countdown}s</span>
+          <button
+            className="flex items-center justify-center rounded-md font-medium shadow-sm focus:outline-none border border-gray-400 px-4 py-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={addMoreTime}
+            disabled={countdown > 10}
+          >
+            Need more time
+          </button>
+        </div>
         <div className="mt-4">
           <label className="block text-sm font-light text-gray-700">
             Post Title
@@ -125,7 +190,7 @@ const PostForm = () => {
                     <img
                       className="h-full object-contain"
                       alt=""
-                      src={field.value.media}
+                      src={field.value.url}
                     />
                   </div>
                 )}
@@ -137,11 +202,17 @@ const PostForm = () => {
           />
         </div>
         <div className="mt-8">
-          <button className="flex items-center justify-center rounded-md font-medium shadow-sm focus:outline-none text-white bg-gray-800 hover:bg-black focus:ring-gray-900 focus:ring-1 focus:ring-offset-1 px-4 py-2 text-sm w-full">
+          <button className="flex items-center justify-center rounded-md font-medium shadow-sm focus:outline-none text-white bg-gray-800 hover:bg-black px-4 py-2 text-sm w-full">
             Submit
           </button>
         </div>
       </form>
+      <Modal
+        isOpen={modalNode !== null}
+        className="flex h-screen items-center justify-center rounded-md shadow-md"
+      >
+        {modalNode}
+      </Modal>
     </div>
   );
 };
