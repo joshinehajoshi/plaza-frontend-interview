@@ -1,22 +1,40 @@
+import { useEffect } from "react";
 import { Controller, useForm } from "react-hook-form";
 
 interface IPostForm {
   title: string;
   content: string;
-  media: string;
+  media: { status: string; media: string };
 }
 
 const PostForm = () => {
-  const methods = useForm<IPostForm>({
+  const { handleSubmit, control, watch } = useForm<IPostForm>({
     defaultValues: {
       title: "",
       content: "",
-      media: "",
     },
   });
 
-  const { handleSubmit, control, watch } = methods;
   const contentChars = watch("content");
+
+  const handleImageUpload = (
+    event: React.ChangeEvent,
+    onChange: (image: IPostForm["media"]) => void
+  ) => {
+    const media = (event.target as HTMLInputElement).files?.[0];
+    if (media) {
+      const reader = new FileReader();
+      reader.readAsDataURL(media);
+      reader.onload = (ev) => {
+        if (ev.target?.result) {
+          onChange({
+            status: "UPLOADING",
+            media: ev.target.result as string,
+          });
+        }
+      };
+    }
+  };
 
   const onSubmit = (data: IPostForm) => {
     alert(JSON.stringify(data));
@@ -81,29 +99,38 @@ const PostForm = () => {
             name="media"
             control={control}
             render={({ field }) => (
-              <div>
-                {field.value ? (
-                  <div className="flex h-40 w-40 justify-center overflow-hidden rounded border bg-black">
-                    <div className="relative h-full">
-                      <img
-                        className="h-full object-contain"
-                        alt=""
-                        src={field.value}
-                      />
-                    </div>
+              <div className="flex h-40 w-40 justify-center rounded border relative">
+                {!field.value && (
+                  <div className="flex h-full flex-col items-center justify-center">
+                    <input
+                      id="media"
+                      type="file"
+                      className="hidden"
+                      accept="image/*"
+                      max={1}
+                      onChange={(event: React.ChangeEvent) =>
+                        handleImageUpload(event, field.onChange)
+                      }
+                    />
+                    <label
+                      htmlFor="media"
+                      className="text-center cursor-pointer text-gray-500 text-sm"
+                    >
+                      Click to choose
+                    </label>
                   </div>
-                ) : (
-                  <div className="h-40 w-40 rounded border">
-                    <div className="flex h-full flex-col items-center justify-center">
-                      <input id="media" type="file" className="hidden" />
-                      <label
-                        htmlFor="media"
-                        className="text-center cursor-pointer text-gray-500 text-sm"
-                      >
-                        Click to choose
-                      </label>
-                    </div>
+                )}
+                {field.value && field.value?.status !== "UPLOADING" && (
+                  <div className="relative h-full">
+                    <img
+                      className="h-full object-contain"
+                      alt=""
+                      src={field.value.media}
+                    />
                   </div>
+                )}
+                {field.value?.status === "UPLOADING" && (
+                  <ImageUpload onChange={field.onChange} value={field.value} />
                 )}
               </div>
             )}
@@ -115,6 +142,30 @@ const PostForm = () => {
           </button>
         </div>
       </form>
+    </div>
+  );
+};
+
+const ImageUpload = ({
+  value,
+  onChange,
+}: {
+  value: IPostForm["media"];
+  onChange: (val: IPostForm["media"]) => void;
+}) => {
+  useEffect(() => {
+    const uploadTimeout = setTimeout(() => {
+      onChange({ ...value, status: "UPLOADED" });
+    }, 4000);
+
+    return () => {
+      clearTimeout(uploadTimeout);
+    };
+  }, [onChange, value]);
+
+  return (
+    <div className="absolute flex items-center justify-center inset-0">
+      <div className="loader"></div>
     </div>
   );
 };
