@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { useInterval } from "../hooks";
 import Modal from "react-modal";
 import { useRouter } from "next/router";
 
@@ -11,7 +10,6 @@ interface IPostForm {
 }
 
 const PostForm = () => {
-  const [countdown, setCountdown] = useState(30);
   const [modalNode, setModalNode] = useState<React.ReactElement | null>(null);
   Modal.setAppElement("#__next");
   const { handleSubmit, control, watch } = useForm<IPostForm>({
@@ -21,33 +19,7 @@ const PostForm = () => {
     },
   });
   const contentChars = watch("content");
-  const media = watch("media");
   const router = useRouter();
-
-  useInterval(
-    () => {
-      if (countdown === 0) {
-        setModalNode(
-          <div className="bg-white p-4 h-40 w-80 rounded-md shadow-md space-y-4 flex flex-col items-center justify-center">
-            <div>Time has ran out</div>
-            <button
-              className="flex items-center justify-center rounded-md font-medium shadow-sm focus:outline-none text-white bg-gray-800 hover:bg-black px-4 py-2 text-sm w-32"
-              onClick={() => router.reload()}
-            >
-              Try Again
-            </button>
-          </div>
-        );
-      } else {
-        setCountdown(countdown - 1);
-      }
-    },
-    media?.status !== "UPLOADING" ? 1000 : null
-  );
-
-  const addMoreTime = () => {
-    setCountdown(countdown + 30);
-  };
 
   const handleImageUpload = (
     event: React.ChangeEvent,
@@ -101,16 +73,6 @@ const PostForm = () => {
         onSubmit={handleSubmit(onSubmit)}
         className="w-96 rounded-md bg-white shadow-md p-4"
       >
-        <div className="flex justify-between text-gray-500 items-center">
-          <span>Time Left: {countdown}s</span>
-          <button
-            className="flex items-center justify-center rounded-md font-medium shadow-sm focus:outline-none border border-gray-400 px-4 py-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-            onClick={addMoreTime}
-            disabled={countdown > 10}
-          >
-            Need more time
-          </button>
-        </div>
         <div className="mt-4">
           <label className="block text-sm font-light text-gray-700">
             Post Title
